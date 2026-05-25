@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 Quiniela Mundial 2026 - Captura Oficial</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #060913;
+            --bg-card: #0d1527;
+            --bg-input: #15223c;
+            --border: #22355a;
+            --text-white: #ffffff;
+            --text-muted: #7084a8;
+            --primary: #2563eb;
+            --success: #10b981;
+            --amber: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-white); padding: 20px; padding-bottom: 60px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* Barra de Navegación de Pantallas */
+        .screen-nav {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background-color: var(--bg-card);
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .screen-btn {
+            background: none; border: none; color: var(--text-muted); padding: 12px 24px;
+            font-size: 1rem; font-weight: 700; cursor: pointer; border-radius: 10px;
+            transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .screen-btn:hover { color: white; background-color: rgba(255,255,255,0.02); }
+        .screen-btn.active { background-color: var(--primary); color: white; box-shadow: 0 4px 15px rgba(37,99,235,0.4); }
+
+        /* Vistas de Pantalla */
+        .screen-view { display: none; animation: fadeIn 0.3s ease-in-out forwards; }
+        .screen-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Caja de Identificación del Usuario */
+        .player-panel {
+            background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+            padding: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .player-panel label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .player-panel input {
+            flex: 1; padding: 12px; background-color: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 8px; color: white; font-size: 1.1rem; font-weight: 600; outline: none; transition: border-color 0.2s;
+        }
+        .player-panel input:focus { border-color: var(--primary); }
+
+        /* Pestañas de Grupos */
+        .group-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 25px; scrollbar-width: none; }
+        .group-tabs::-webkit-scrollbar { display: none; }
+        .gt-btn {
+            background-color: #111a30; border: 1px solid var(--border); color: var(--text-muted);
+            padding: 10px 18px; font-size: 0.85rem; font-weight: 700; border-radius: 8px; cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+        }
+        .gt-btn.active { background-color: var(--bg-input); color: white; border-color: var(--text-muted); }
+
+        .group-view { display: none; }
+        .group-view.active { display: block; }
+
+        /* Tarjetas de Partidos */
+        .grid-matches { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
+        .match-card {
+            background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+            padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;
+        }
+        .match-card.filled { border-color: rgba(16, 185, 129, 0.4); }
+        .match-card.missing-alert { border-color: var(--danger); background-color: rgba(239, 68, 68, 0.05); animation: shake 0.4s ease-in-out; }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .match-meta { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+        .match-date { color: var(--amber); background-color: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 6px; }
+        .match-group-lbl { color: var(--text-muted); }
+
+        .vs-bar { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 1.05rem; padding: 4px 0; }
+        .team { width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+        .team.l { text-align: left; justify-content: flex-start; }
+        .team.v { text-align: right; justify-content: flex-end; }
+        .flag-icon { width: 24px; height: 16px; object-fit: cover; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .vs-badge { font-size: 0.75rem; color: var(--text-muted); background-color: var(--bg-input); padding: 3px 8px; border-radius: 5px; font-weight: bold; }
+
+        /* Matriz de Elección Personalizada */
+        .btn-matrix { display: flex; background-color: var(--bg-main); padding: 3px; border-radius: 8px; border: 1px solid var(--border); gap: 4px; }
+        .btn-choice {
+            flex: 1; background: none; border: none; color: var(--text-muted); padding: 11px 6px;
+            font-size: 0.8rem; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .btn-choice:hover { color: white; background-color: rgba(255,255,255,0.02); }
+        .btn-choice.active[data-res="L"] { background-color: #2563eb; color: white; }
+        .btn-choice.active[data-res="E"] { background-color: #d97706; color: white; }
+        .btn-choice.active[data-res="V"] { background-color: #dc2626; color: white; }
+
+        /* PANTALLA DE RESUMEN EJECUTIVO */
+        .summary-container { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+        .summary-header { background-color: #111a30; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+        .summary-header h2 { font-size: 1.3rem; font-weight: 800; }
+        .summary-header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 2px; }
+        
+        .summary-table-wrapper { overflow-x: auto; max-height: 550px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        th, td { padding: 12px 20px; border-bottom: 1px solid rgba(37, 53, 90, 0.4); }
+        th { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; background-color: #0b1120; position: sticky; top: 0; }
+        tr:hover td { background-color: rgba(255,255,255,0.01); }
+        
+        .badge-choice { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+        .badge-choice.L { background-color: rgba(37, 99, 235, 0.15); color: #60a5fa; }
+        .badge-choice.E { background-color: rgba(217, 119, 6, 0.15); color: #fbbf24; }
+        .badge-choice.V { background-color: rgba(220, 38, 38, 0.15); color: #f87171; }
+        .badge-choice.empty { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        /* Botón de Generación Final */
+        .footer-tray { text-align: center; margin-top: 35px; }
+        .btn-submit { background-color: var(--success); color: #000; border: none; padding: 18px 55px; font-size: 1.2rem; font-weight: 800; border-radius: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 5px 20px rgba(16,185,129,0.3); transition: all 0.2s; }
+        .btn-submit:hover { transform: translateY(-2px); background-color: #059669; box-shadow: 0 8px 25px rgba(16,185,129,0.4); }
+
+        @media (max-width: 600px) {
+            .screen-nav { flex-direction: column; gap: 5px; }
+            .screen-btn { width: 100%; text-align: center; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <nav class="screen-nav">
+        <button class="screen-btn active" onclick="switchMainScreen(this, 'scr-capture')">📝 1. Capturar Resultados</button>
+        <button class="screen-btn" onclick="switchMainScreen(this, 'scr-summary')">👁️ 2. Ver Mi Resumen</button>
+    </nav>
+
+    <div class="player-panel">
+        <label for="username-field">Nombre Completo:</label>
+        <input type="text" id="username-field" placeholder="Ingresa tu nombre para firmar tus resultados...">
+    </div>
+
+    <div id="scr-capture" class="screen-view active">
+        <div class="group-tabs" id="tabs-navigation-box"></div>
+        <div id="group-views-box"></div>
+    </div>
+
+    <div id="scr-summary" class="screen-view">
+        <div class="summary-container">
+            <div class="summary-header">
+                <h2>Resumen de la Cartilla</h2>
+                <p>Monitorea y valida tus elecciones de un vistazo antes de descargar el Excel.</p>
+            </div>
+            <div class="summary-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Fecha</th>
+                            <th>Encuentro</th>
+                            <th>Tu Voto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-tray">
+        <button class="btn-submit" onclick="validateAndCompileExcel()">🚀 Enviar y Descargar Excel Oficial</button>
+    </div>
+</div>
+
+<script>
+    // Mapeo Técnico de Selección y Códigos ISO de Banderas HD (flagcdn)
+    const matchesSheet = {
+        "Grupo A": [["México", "mx", "Sudáfrica", "za", "11-Jun"], ["Corea del Sur", "kr", "Rep. Checa", "cz", "11-Jun"], ["Rep. Checa", "cz", "Sudáfrica", "za", "18-Jun"], ["México", "mx", "Corea del Sur", "kr", "18-Jun"], ["Sudáfrica", "za", "Corea del Sur", "kr", "24-Jun"], ["Rep. Checa", "cz", "México", "mx", "24-Jun"]],
+        "Grupo B": [["Canadá", "ca", "Bosnia", "ba", "12-Jun"], ["Qatar", "qa", "Suiza", "ch", "12-Jun"], ["Suiza", "ch", "Bosnia", "ba", "18-Jun"], ["Canadá", "ca", "Qatar", "qa", "18-Jun"], ["Suiza", "ch", "Canadá", "ca", "24-Jun"], ["Bosnia", "ba", "Qatar", "qa", "24-Jun"]],
+        "Grupo C": [["Brasil", "br", "Marruecos", "ma", "13-Jun"], ["Haití", "ht", "Escocia", "gb-sct", "13-Jun"], ["Escocia", "gb-sct", "Marruecos", "ma", "19-Jun"], ["Brasil", "br", "Haití", "ht", "19-Jun"], ["Marruecos", "ma", "Haití", "ht", "24-Jun"], ["Escocia", "gb-sct", "Brasil", "br", "24-Jun"]],
+        "Grupo D": [["EUA", "us", "Paraguay", "py", "12-Jun"], ["Australia", "au", "Turquía", "tr", "13-Jun"], ["Turquía", "tr", "Paraguay", "py", "19-Jun"], ["EUA", "us", "Australia", "au", "19-Jun"], ["Turquía", "tr", "EUA", "us", "25-Jun"], ["Paraguay", "py", "Australia", "au", "25-Jun"]],
+        "Grupo E": [["Alemania", "de", "Curazao", "cw", "14-Jun"], ["Costa de Marfil", "ci", "Ecuador", "ec", "14-Jun"], ["Alemania", "de", "Costa de Marfil", "ci", "20-Jun"], ["Ecuador", "ec", "Curazao", "cw", "20-Jun"], ["Ecuador", "ec", "Alemania", "de", "25-Jun"], ["Curazao", "cw", "Costa de Marfil", "ci", "25-Jun"]],
+        "Grupo F": [["Países Bajos", "nl", "Japón", "jp", "14-Jun"], ["Suecia", "se", "Túnez", "tn", "14-Jun"], ["Países Bajos", "nl", "Suecia", "se", "20-Jun"], ["Túnez", "tn", "Japón", "jp", "20-Jun"], ["Japón", "jp", "Suecia", "se", "25-Jun"], ["Túnez", "tn", "Países Bajos", "nl", "25-Jun"]],
+        "Grupo G": [["Irán", "ir", "Nueva Zelanda", "nz", "15-Jun"], ["Bélgica", "be", "Egipto", "eg", "15-Jun"], ["Bélgica", "be", "Irán", "ir", "21-Jun"], ["Nueva Zelanda", "nz", "Egipto", "eg", "21-Jun"], ["Egipto", "eg", "Irán", "ir", "26-Jun"], ["Nueva Zelanda", "nz", "Bélgica", "be", "26-Jun"]],
+        "Grupo H": [["España", "es", "Cabo Verde", "cv", "15-Jun"], ["Arabia Saudita", "sa", "Uruguay", "uy", "15-Jun"], ["España", "es", "Arabia Saudita", "sa", "21-Jun"], ["Uruguay", "uy", "Cabo Verde", "cv", "21-Jun"], ["Cabo Verde", "cv", "Arabia Saudita", "sa", "26-Jun"], ["Uruguay", "uy", "España", "es", "26-Jun"]],
+        "Grupo I": [["Francia", "fr", "Senegal", "sn", "16-Jun"], ["Irak", "iq", "Noruega", "no", "16-Jun"], ["Francia", "fr", "Irak", "iq", "22-Jun"], ["Noruega", "no", "Senegal", "sn", "22-Jun"], ["Noruega", "no", "Francia", "fr", "26-Jun"], ["Senegal", "sn", "Irak", "iq", "26-Jun"]],
+        "Grupo J": [["Argentina", "ar", "Argelia", "dz", "16-Jun"], ["Austria", "at", "Jordania", "jo", "16-Jun"], ["Argentina", "ar", "Austria", "at", "22-Jun"], ["Jordania", "jo", "Argelia", "dz", "22-Jun"], ["Argelia", "dz", "Austria", "at", "27-Jun"], ["Jordania", "jo", "Argentina", "ar", "27-Jun"]],
+        "Grupo K": [["Portugal", "pt", "Congo", "cd", "17-Jun"], ["Uzbekistán", "uz", "Colombia", "co", "17-Jun"], ["Portugal", "pt", "Uzbekistán", "uz", "23-Jun"], ["Colombia", "co", "Congo", "cd", "23-Jun"], ["Colombia", "co", "Portugal", "pt", "27-Jun"], ["Congo", "cd", "Uzbekistán", "uz", "27-Jun"]],
+        "Grupo L": [["Inglaterra", "gb-eng", "Croacia", "hr", "17-Jun"], ["Ghana", "gh", "Panamá", "pa", "17-Jun"], ["Inglaterra", "gb-eng", "Ghana", "gh", "23-Jun"], ["Panamá", "pa", "Croacia", "hr", "23-Jun"], ["Panamá", "pa", "Inglaterra", "gb-eng", "27-Jun"], ["Croacia", "hr", "Ghana", "gh", "27-Jun"]]
+    };
+
+    let INTERNAL_DB = {};
+    const totalTargetCount = 72;
+
+    const navTabs = document.getElementById('tabs-navigation-box');
+    const viewsBox = document.getElementById('group-views-box');
+
+    function buildSystem() {
+        let first = true;
+
+        for (const [groupName, matches] of Object.entries(matchesSheet)) {
+            const targetId = groupName.replace(/\s+/g, '-').toLowerCase();
+
+            // Pestañas horizontales
+            const tabBtn = document.createElement('button');
+            tabBtn.className = `gt-btn ${first ? 'active' : ''}`;
+            tabBtn.textContent = groupName.replace("Grupo ", "G-");
+            tabBtn.onclick = () => switchGroupTab(tabBtn, targetId);
+            navTabs.appendChild(tabBtn);
+
+            // Contenedor del grupo
+            const groupView = document.createElement('div');
+            groupView.className = `group-view ${first ? 'active' : ''}`;
+            groupView.id = targetId;
+
+            const grid = document.createElement('div');
+            grid.className = 'grid-matches';
+
+            matches.forEach(([local, flagL, visita, flagV, date], idx) => {
+                const rowKey = `${groupName}_M${idx + 1}`;
+                INTERNAL_DB[rowKey] = { grupo: groupName, fecha: date, local: local, visita: visita, seleccion: "" };
+
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                card.id = `card_${rowKey}`;
+
+                card.innerHTML = `
+                    <div class="match-meta">
+                        <span class="match-group-lbl">${groupName}</span>
+                        <span class="match-date">${date}</span>
+                    </div>
+                    <div class="vs-bar">
+                        <span class="team l">
+                            <img class="flag-icon" src="https://flagcdn.com/w40/${flagL}.png" alt="${local}">
+                            ${local}
+                        </span>
+                        <span class="vs-badge">VS</span>
+                        <span class="team v">
+                            ${visita}
+                            <img class="flag-icon" src="https://flagcdn.com/w40/${flagV}.png" alt="${visita}">
+                        </span>
+                    </div>
+                    <div class="btn-matrix">
+                        <button class="btn-choice" data-res="L" onclick="commitResult('${rowKey}', 'L', this)">${local}</button>
+                        <button class="btn-choice" data-res="E" onclick="commitResult('${rowKey}', 'E', this)">Empate</button>
+                        <button class="btn-choice" data-res="V" onclick="commitResult('${rowKey}', 'V', this)">${visita}</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            groupView.appendChild(grid);
+            viewsBox.appendChild(groupView);
+            first = false;
+        }
+    }
+
+    function switchMainScreen(btn, screenId) {
+        document.querySelectorAll('.screen-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(screenId).classList.add('active');
+
+        if (screenId === 'scr-summary') drawSummaryTable();
+    }
+
+    // Navegación de pestañas internas
+    function switchGroupTab(btn, targetId) {
+        document.querySelectorAll('.gt-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.group-view').forEach(v => v.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(targetId).classList.add('active');
+    }
+
+    function commitResult(key, val, btn) {
+        const matrix = btn.parentElement;
+        matrix.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        INTERNAL_DB[key].seleccion = val;
+        
+        const card = document.getElementById(`card_${key}`);
+        card.classList.add('filled');
+        card.classList.remove('missing-alert');
+    }
+
+    // Pantalla 2: Resumen limpio
+    function drawSummaryTable() {
+        const tbody = document.getElementById('summary-table-body');
+        tbody.innerHTML = "";
+
+        for (const [key, item] of Object.entries(INTERNAL_DB)) {
+            const tr = document.createElement('tr');
+            
+            let txt = "Pendiente";
+            let css = "empty";
+            
+            if (item.seleccion === 'L') { txt = `Gana ${item.local}`; css = "L"; }
+            else if (item.seleccion === 'V') { txt = `Gana ${item.visita}`; css = "V"; }
+            else if (item.seleccion === 'E') { txt = "Empate"; css = "E"; }
+
+            tr.innerHTML = `
+                <td><strong>${item.grupo}</strong></td>
+                <td>${item.fecha}</td>
+                <td>${item.local} vs ${item.visita}</td>
+                <td><span class="badge-choice ${css}">${txt}</span></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    // VALIDACIÓN ESTRICTA Y EXPORTACIÓN EXCEL PREMIUM (.XLSX)
+    function validateAndCompileExcel() {
+        const nameInput = document.getElementById('username-field').value.trim();
+        
+        if (!nameInput) {
+            alert("🛑 ERROR DE VALIDACIÓN:\n\nDebes escribir tu Nombre Completo en el cuadro superior para poder validar e inscribir tu quiniela.");
+            document.getElementById('username-field').focus();
+            return;
+        }
+
+        let answeredCount = 0;
+        for (const [key, item] of Object.entries(INTERNAL_DB)) {
+            if (item.seleccion !== "") {
+                answeredCount++;
+            } else {
+                document.getElementById(`card_${key}`).classList.add('missing-alert');
+            }
+        }
+
+        if (answeredCount < totalTargetCount) {
+            alert(`🛑 ADVERTENCIA DE CAPTURA:\n\nTu cartilla está incompleta. Llevas ${answeredCount} de ${totalTargetCount} partidos contestados.\n\nPor favor, responde todos los grupos. Los juegos pendientes parpadean en color rojo.`);
+            return;
+        }
+
+        // Estructura Tabular de Alta Calidad para el libro Excel (Sin caracteres especiales)
+        let matrixRows = [
+            ["QUINIELA MUNDIAL DE LA FIFA 2026 - REPORTE DE RESULTADOS"],
+            ["PARTICIPANTE:", nameInput.toUpperCase()],
+            ["FECHA DE EMISION DIGITAL:", new Date().toLocaleString()],
+            [], // Espaciador estructural
+            ["GRUPO", "FECHA PARTIDO", "SELECCION LOCAL", "SELECCION VISITA", "TU PRONOSTICO (ELECCION)", "CODIGO VOTO"]
+        ];
+
+        for (const [key, item] of Object.entries(INTERNAL_DB)) {
+            let labelResult = item.seleccion === 'L' ? `GANA ${item.local.toUpperCase()}` : (item.seleccion === 'V' ? `GANA ${item.visita.toUpperCase()}` : 'EMPATE');
+            matrixRows.push([
+                item.grupo,
+                item.fecha,
+                item.local,
+                item.visita,
+                labelResult,
+                item.seleccion
+            ]);
+        }
+
+        // Generar Libro y Hoja usando la API nativa de SheetJS
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.aoa_to_sheet(matrixRows);
+
+        // Formato Premium de Celdas: Autoajuste de anchos para prevenir textos recortados
+        worksheet['!cols'] = [
+            { wch: 15 }, // Grupo
+            { wch: 15 }, // Fecha
+            { wch: 22 }, // Local
+            { wch: 22 }, // Visita
+            { wch: 30 }, // Tu Pronóstico
+            { wch: 15 }  // Código Voto
+        ];
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Quiniela 1X2");
+        
+        const generatedName = `Quiniela_Mundial_2026_${nameInput.replace(/\s+/g, '_')}.xlsx`;
+        XLSX.writeFile(workbook, generatedName);
+
+        alert(`✅ ¡EXCEL PREMIUM COMPILADO CON ÉXITO!\n\nTu archivo limpio se descargó automáticamente como:\n"${generatedName}"\n\n👉 PASO FINAL: Abre tu correo, adjunta este documento Excel y envíaselo al organizador para quedar oficialmente registrado.`);
+    }
+
+    window.onload = buildSystem;
+</script>
+</body>
+</html>
